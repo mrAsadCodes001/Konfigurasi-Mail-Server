@@ -1,0 +1,303 @@
+[Debian 11]
+
+1.apt update && apt upgrade -y
+>	apt update = Memperbarui daftar paket yang tersedia dari repository
+>	&& = Menghubungkan dua perintah
+>	apt upgrade = Mengupgrade paket-paket yang terinstal ke versi terbaru
+>	-y = Opsi untuk secara otomatis menjawab "yes" pada semua konfirmasi
+
+2.apt install curl wget unzip -y
+>	apt install = Perintah untuk menginstal paket software baru
+>	curl = Tool command-line untuk transfer data dengan berbagai protocol
+>	wget = Tool non-interaktif untuk mengunduh file dari web
+>	unzip = Utility untuk mengekstrak file arsip format ZIP
+>	-y = Opsi untuk secara otomatis menjawab "yes" pada semua konfirmasi
+	
+3.apt install postfix dovecot-imapd dovecot-pop3d -y
+>	apt install = Perintah untuk menginstal paket software baru
+>	postfix = Mail Transfer Agent (MTA) yang bertanggung jawab untuk mengirim dan menerima email antara server
+>	dovecot-imapd = Memungkinkan user mengakses email yang tersimpan di server dari berbagai device
+>	dovecot-pop3d = Memungkinkan user mendownload email dari server ke device local
+>	-y = Opsi untuk secara otomatis menjawab "yes" pada semua konfirmasi
+
+=====================================================================================================================
+Saat install Postfix:
+
+Pilih: Internet Site
+
+System mail name: isi dengan domain kamu, contoh (sekolahku.local) atau kalau punya domain beneran, pakai itu.
+
+======================================================================================================================
+
+4.adduser client1
+  adduser client2
+>	adduser = Membuat user account baru
+>	client1 = user
+>	client2 = user
+
+5.systemctl status postfix
+>	systemctl status postfix = untuk melihat status postfix
+
+6.systemctl status dovecot
+>	systemctl status dovecot = untuk melihat status dovecot
+
+7.apt install mariadb-server -y
+>	apt install mariadb-server = berfungsi untuk menginstal MariaDB
+>	-y = Opsi untuk secara otomatis menjawab "yes" pada semua konfirmasi
+
+8.mysql_secure_installation
+>	mysql_secure_installation = berfungsi untuk mengamankan instalasi MariaDB/MySQL dengan melakukan berbagai konfigurasi keamanan penting
+
+=====================================================================================================================
+Switch to unix_socket authentication [Y/n] n
+Change the root password? [Y/n] n
+Remove anonymous users? [Y/n] Y
+Disallow root login remotely? [Y/n] n
+Remove test database and access to it? [Y/n] y
+Reload privilege tables now? [Y/n] y
+=====================================================================================================================
+
+9.apt install apache2 php php-mysql php-intl php-mbstring php-xml unzip -y
+
+10.cd /var/www/html
+>	cd /var/www/html = untuk masuk ke folder "/var/www/html"
+
+11.wget https://github.com/roundcube/roundcubemail/releases/download/1.6.6/roundcubemail-1.6.6-complete.tar.gz
+>	wget https://github.com/roundcube/roundcubemail/releases/download/1.6.6/roundcubemail-1.6.6-complete.tar.gz = berfungsi untuk mengunduh package Roundcube Webmail dari GitHub
+
+12.tar -xvzf roundcubemail-1.6.6-complete.tar.gz
+
+13.mv roundcubemail-1.6.6 roundcube
+
+14.chown -R www-data:www-data roundcube
+
+15.mysql -u root -p
+>	mysql -u root -p = berfungsi untuk terhubung ke MySQL/MariaDB server sebagai user root dengan authentikasi password
+
+=====================================================================================================================
+CREATE DATABASE roundcube;
+CREATE USER 'roundcube'@'localhost' IDENTIFIED BY '1';
+GRANT ALL PRIVILEGES ON roundcube.* TO 'roundcube'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+=====================================================================================================================
+
+16.nano /etc/hosts
+>	tambahkan = 127.0.0.1       webmail.tkj
+
+17.nano /etc/postfix/main.cf
+
+======================================================================================================================
+
+# See /usr/share/postfix/main.cf.dist for a commented, more complete version
+
+
+# Debian specific:  Specifying a file name will cause the first
+# line of that file to be used as the name.  The Debian default
+# is /etc/mailname.
+#myorigin = /etc/mailname
+
+smtpd_banner = $myhostname ESMTP $mail_name (Debian/GNU)
+biff = no
+
+# appending .domain is the MUA's job.
+append_dot_mydomain = no
+
+# Uncomment the next line to generate "delayed mail" warnings
+#delay_warning_time = 4h
+
+readme_directory = no
+
+# See http://www.postfix.org/COMPATIBILITY_README.html -- default to 2 on
+# fresh installs.
+compatibility_level = 2
+
+
+
+# TLS parameters
+smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+smtpd_tls_security_level=may
+
+smtp_tls_CApath=/etc/ssl/certs
+smtp_tls_security_level=may
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+
+
+smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
+myhostname = fian.fian
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+myorigin = /etc/mailname
+mydestination = $myhostname, fian@webmail.tkj, fian.fian, localhost.fian, localhost
+relayhost = 
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
+mailbox_size_limit = 0
+recipient_delimiter = +
+inet_interfaces = all
+inet_protocols = all
+
+# Enable SMTP AUTH via Dovecot
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+
+# Restriksi pengiriman
+smtpd_recipient_restrictions =
+    permit_sasl_authenticated,
+    permit_mynetworks,
+    reject_unauth_destination
+
+myhostname = fian.webmail.tkj
+mydomain = webmail.tkj
+myorigin = $mydomain
+inet_interfaces = all
+inet_protocols = ipv4
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+
+
+======================================================================================================================
+
+18.nano /etc/dovecot/conf.d/10-master.conf
+
+======================================================================================================================
+
+#default_process_limit = 100
+#default_client_limit = 1000
+
+# Default VSZ (virtual memory size) limit for service processes. This is mainly
+# intended to catch and kill processes that leak memory before they eat up
+# everything.
+#default_vsz_limit = 256M
+
+# Login user is internally used by login processes. This is the most untrusted
+# user in Dovecot system. It shouldn't have access to anything at all.
+#default_login_user = dovenull
+
+# Internal user is used by unprivileged processes. It should be separate from
+# login user, so that login processes can't disturb other processes.
+#default_internal_user = dovecot
+
+service imap-login {
+  inet_listener imap {
+    #port = 143
+  }
+  inet_listener imaps {
+    #port = 993
+    #ssl = yes
+  }
+
+  # Number of connections to handle before starting a new process. Typically
+  # the only useful values are 0 (unlimited) or 1. 1 is more secure, but 0
+  # is faster. <doc/wiki/LoginProcess.txt>
+  #service_count = 1
+
+  # Number of processes to always keep waiting for more connections.
+  #process_min_avail = 0
+
+  # If you set service_count=0, you probably need to grow this.
+  #vsz_limit = $default_vsz_limit
+}
+
+service pop3-login {
+  inet_listener pop3 {
+    #port = 110
+  }
+  inet_listener pop3s {
+    #port = 995
+    #ssl = yes
+  }
+}
+
+service submission-login {
+  inet_listener submission {
+    #port = 587
+  }
+}
+
+service lmtp {
+  unix_listener lmtp {
+    #mode = 0666
+  }
+
+  # Create inet listener only if you can't use the above UNIX socket
+  #inet_listener lmtp {
+    # Avoid making LMTP visible for the entire internet
+    #address =
+    #port = 
+  #}
+}
+
+service imap {
+  # Most of the memory goes to mmap()ing files. You may need to increase this
+  # limit if you have huge mailboxes.
+  #vsz_limit = $default_vsz_limit
+
+  # Max. number of IMAP processes (connections)
+  #process_limit = 1024
+}
+
+service pop3 {
+  # Max. number of POP3 processes (connections)
+  #process_limit = 1024
+}
+
+service submission {
+  # Max. number of SMTP Submission processes (connections)
+  #process_limit = 1024
+}
+
+service auth {
+  # Untuk komunikasi Dovecot <-> Postfix
+  unix_listener /var/spool/postfix/private/auth {
+    mode = 0660
+    user = postfix
+    group = postfix
+  }
+
+  # Untuk Dovecot internal
+  unix_listener auth-userdb {
+    mode = 0600
+    user = dovecot
+    group = dovecot
+  }
+
+  # service auth defaults
+  user = dovecot
+}
+
+service auth-worker {
+  # Auth worker process is run as root by default, so that it can access
+  # /etc/shadow. If this isn't necessary, the user should be changed to
+  # $default_internal_user.
+  #user = root
+}
+
+service dict {
+  # If dict proxy is used, mail processes should have access to its socket.
+  # For example: mode=0660, group=vmail and global mail_access_groups=vmail
+  unix_listener dict {
+    #mode = 0600
+    #user = 
+    #group = 
+  }
+}
+
+======================================================================================================================
+
+19.systemctl restart postfix dovecot apache2
+
+20.rm -rf /var/www/html/roundcube/installer
+
+[windows 11]
+
+1.buka http://192.168.253.23/roundcube/installer
+
+
+2.buka http://192.168.253.23/roundcube
+>	login client1
+>	login client2
+
+3.test kirim pesan 
+
+
