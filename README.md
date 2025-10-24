@@ -1,1 +1,2 @@
-h2 Konfigurasi-Mail-Server
+# Konfigurasi-Mail-Server
+# TUTORIAL DI MAIL.TXT
